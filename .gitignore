@@ -1,0 +1,10 @@
+/bin/
+/include/
+/lib/
+/Debug/
+/Release/
+
+__pycache__/
+
+
+*.pyc
