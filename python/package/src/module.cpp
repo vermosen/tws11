@@ -9,18 +9,6 @@ PYBIND11_MODULE(_tws11, m) {
 
   m.doc() = "tws api";
 
-  m.def("test", [](const std::string& msg) {
-
-      std::stringstream ss; ss
-        << "message: "
-        << msg
-        << std::endl;
-
-      return ss.str();
-    }
-    , pybind11::arg("msg")
-  );
-
   pybind11::class_<Contract>(m, "contract")
     .def(pybind11::init<>())
     .def_readwrite("id"      , &Contract::conId   )
