@@ -4,7 +4,8 @@
       "-DCMAKE_WERROR:BOOL=ON",
       "-DCMAKE_VERBOSE:BOOL=ON",
       "-DBUILD_TESTS:BOOL=ON",
-      "-DBUILD_DOC:BOOL=OFF"
+      "-DBUILD_DOC:BOOL=OFF",
+      "-DCMAKE_INSTALL_PREFIX:PATH=${workspaceFolder}"
   ],
   "cmake.buildDirectory": "${workspaceFolder}/${buildType}",
   "cmake.buildTask": false,
@@ -84,6 +85,9 @@
     "thread": "cpp",
     "cinttypes": "cpp",
     "typeindex": "cpp",
-    "typeinfo": "cpp"
+    "typeinfo": "cpp",
+    "iostream": "cpp",
+    "valarray": "cpp",
+    "variant": "cpp"
 }
 }
