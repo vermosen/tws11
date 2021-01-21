@@ -13,7 +13,8 @@ client::client(
   , int timeout
   , logger_type log)
 
-  : m_sink(handle_type())
+  : m_sink({})
+  , m_chain({})
   , m_log(log) 
   , m_state(state::idle)
   , m_id(id)
@@ -59,20 +60,22 @@ void client::request(
 
 void client::error(int id, int ec, const std::string& msg) {
   
-  if (ec != 2107 && ec != 2106) { // garbage warnings about datafarm
-    std::stringstream ss; ss
-        << "[error] id - "
-        << id
-        << " [" << ec << "] "
-        << msg
-        ;
-  
-    m_log(ss.str());
-  }
-  else if (ec == 162) { // Trading TWS session is connected from a different IP address 
-
+  if (ec == 2107 || ec == 2106) { // garbage warnings about datafarm
+    return;
   }
 
+  if (ec == 162) {                // Trading TWS session is connected from a different IP address 
+    m_state = state::connect;
+  }
+
+  std::stringstream ss; ss
+      << "[error] id - "
+      << id
+      << " [" << ec << "] "
+      << msg
+      ;
+
+  m_log(ss.str());
 }
 void client::historicalData(TickerId id, const Bar& b) {
   m_sink(id, b);

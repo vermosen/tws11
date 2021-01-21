@@ -8,9 +8,12 @@ __all__ = ['client', 'currency', 'equity' ]
 # base instrument class  
 class instrument(ABC):
 
+  # from https://interactivebrokers.github.io/tws-api/classIBApi_1_1Contract.html
   class code(Enum):
-    # ...
-    cash = 6
+    stk     = 1
+    opt     = 2
+    fut     = 3
+    cash    = 6
     # ...
 
   def __init__(self, contract_):
@@ -19,6 +22,10 @@ class instrument(ABC):
 
   def __str__(self):
     return self.contract_.__str__()
+
+  @property
+  def contract(self):
+    return contract_
 
 # derived instrument types
 class currency(instrument):
@@ -36,11 +43,12 @@ class currency(instrument):
 
 class equity(instrument):
   
-  def __init__(self):
+  def __init__(self, symbol, denomination, exchange):
 
     c = contract()
-    #c.symbol = symbol
-    #c.currency = denomination
-    #c.exchange = exchange
-    #c.type = instrument.code.cash.value
+    c.symbol = symbol
+    c.currency = denomination
+    c.exchange = exchange
+    c.type = instrument.code.stk.name.upper()
+
     super().__init__(c)

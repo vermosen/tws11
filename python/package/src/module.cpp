@@ -15,8 +15,7 @@ using namespace pybind11::literals;
 
 using clock_type = std::chrono::system_clock;
 
-// creator function bind logger to py::print
-std::unique_ptr<client> create_client(int id, const std::string& host, int port, bool extra, int timeout) {
+std::unique_ptr<client> create_client(int id, const std::string& host, int port, bool extra, int timeout) { // creator function to bind logger to py::print
   return std::unique_ptr<client>( new client(id, host, port, extra, timeout, [](const std::string& msg) { py::print(msg); }));
 }
 
@@ -89,15 +88,10 @@ PYBIND11_MODULE(_tws11, m) {
       , int timeout) -> py::dict {
 
         std::vector<clock_type::time_point> nanos;
-        std::vector<double> high;
-        std::vector<double> low;
-        std::vector<double> open;
-        std::vector<double> close;
-        std::vector<double> wap;
-        std::vector<std::int64_t> volume;
-        std::vector<std::int64_t> count;
+        std::vector<double> high, low, open, close, wap;
+        std::vector<std::int64_t> volume, count;
 
-        cl.sink() = [&](TickerId id, const Bar& b) -> void {
+        cl.data_handle() = [&](TickerId id, const Bar& b) -> void {
           auto secs = std::chrono::seconds{ std::stoi( b.time ) };
            nanos.push_back(std::chrono::system_clock::time_point(secs));
             high.push_back(b.high   );
@@ -125,17 +119,17 @@ PYBIND11_MODULE(_tws11, m) {
               break;
             }
 
-            if (PyErr_CheckSignals() != 0) {        // handle ctrl + C
-              cl.sink() = {};
+            if (PyErr_CheckSignals() != 0) {                      // handle ctrl + C
+              cl.data_handle() = {};
               throw py::error_already_set();
             }          
           };
 
-          cl.sink() = {};
+          cl.data_handle() = {};                                  // reset the sink
           
         } catch(std::exception& ex) {
           py::print(ex.what());
-          cl.sink() = {};
+          cl.data_handle() = {};
           throw ex;
         }
 
@@ -156,6 +150,14 @@ PYBIND11_MODULE(_tws11, m) {
       , py::arg("duration")
       , py::arg("end")
       , py::arg("timeout") = -1
+    )
+    .def("chain", [](client& cl, Contract& c) {
+
+
+        cl.chain_handle() = []() {};
+        return;
+      }
+    , py::arg("contract")
     )
     .def_property_readonly("id", &client::id)
     .def_property_readonly("host", &client::host)

@@ -44,7 +44,8 @@ public:
   using data_type = Bar;
   using logger_type = std::function<void(const std::string&)>;
   using handle_type = std::function<void(TickerId, const data_type&)>;
-  
+  using chain_hdl_type = std::function<void()>;
+
 public:
   client(int, std::string, int, bool, int, logger_type = logger_type());
 
@@ -66,7 +67,8 @@ public:
   bool   connected() const { return m_state != state::idle; }
 
 public:
-  handle_type& sink() { return m_sink; }
+  handle_type& data_handle() { return m_sink; }
+  chain_hdl_type& chain_handle() { return m_chain; }
   
 // Ewrapper interface
 protected:
@@ -75,7 +77,10 @@ protected:
   void historicalDataEnd(int, const std::string&, const std::string&) override final;
 
 private:
-  handle_type m_sink  ;
+  handle_type    m_sink ;
+  chain_hdl_type m_chain;
+
+private:
   logger_type m_log   ;
   state       m_state ;
   int         m_id    ;
