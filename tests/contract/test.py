@@ -35,5 +35,19 @@ class test_contract(unittest.TestCase):
       "currency: USD\n"
     ]))
 
+def test_build_currency(self):
+
+  from tws11 import currency
+
+  c = currency(symbol = "EUR", denomination = "USD", exchange = "IDEALPRO")
+
+  self.assertEqual(c.contract.__str__(), ''.join([
+    "contract id: 1\n",
+    "symbol:   EUR\n",
+    "type:     CASH\n",
+    "exchange: IDEALPRO\n",
+    "currency: USD\n"
+  ]))
+
 if __name__ == '__main__':
   unittest.main()

@@ -1,7 +1,8 @@
 
 #include "client.h"
 
-#include <sstream>
+#include <sstream> // stringstream
+#include <iomanip> // put_time
 
 #include <tws/EReader.h>
 
@@ -13,9 +14,7 @@ client::client(
   , int timeout
   , logger_type log)
 
-  : m_sink({})
-  , m_chain({})
-  , m_log(log) 
+  : m_log(log) 
   , m_state(state::idle)
   , m_id(id)
   , m_host(host)
@@ -50,13 +49,58 @@ void client::request(
     , const std::string& dur
     , const std::chrono::system_clock::time_point& end) {
 
-      std::stringstream send; send
-        << ""
-        ;
+  std::stringstream ss;
+  std::time_t t = std::chrono::system_clock::to_time_t(end);
+  std::tm m = *std::gmtime(&t);
+  ss << std::put_time(&m, "%Y%m%d %H:%M:%S") << " " << m_tz;
 
-      m_rd.m_sock.reqHistoricalData(1, c, send.str(), dur, bar, field, false, 2, false, TagValueListSPtr());
-      m_state = state::hist_ack;
+  m_rd.m_sock.reqHistoricalData(1, c, ss.str(), dur, bar, field, false, 2, false, TagValueListSPtr());
+  m_state = state::hist_ack;
+}
+
+void client::get_chain(const Contract& c, const std::string& exchange) {
+
+  //see https://interactivebrokers.github.io/tws-api/classIBApi_1_1EClient.html#adb17b291044d2f8dcca5169b2c6fd690
+  m_rd.m_sock.reqSecDefOptParams(1, c.symbol, exchange, c.secType, c.conId);
+  m_state = state::chain_ack;
+}
+
+void client::get_details(const Contract& c) {
+  m_rd.m_sock.reqContractDetails(1, c);
+  m_state = state::details_ack;
+}
+
+void client::securityDefinitionOptionalParameter(
+    int reqId
+  , const std::string& exchange
+  , int underlyingConId
+  , const std::string& tr_class
+  , const std::string& multiplier
+  , const std::set<std::string>& expirations
+  , const std::set<double>& strikes) {
+
+  for (std::size_t i = 0; i < strikes.size(); i++) {
+    for (std::size_t j = 0; i < expirations.size(); i++) {
+      Contract c;
+      c.multiplier   = multiplier;
+      c.exchange     = exchange;
+      c.tradingClass = tr_class;
+      m_chain_hdl(std::move(c));
     }
+  }
+}
+  
+void client::securityDefinitionOptionalParameterEnd(int reqId) {
+  m_state = state::connect;
+}
+
+void client::contractDetails(int id, const ContractDetails& c) {
+  m_details_hdl(c);
+}
+
+void client::contractDetailsEnd(int id) {
+  m_state = state::connect;
+}
 
 void client::error(int id, int ec, const std::string& msg) {
   
@@ -78,7 +122,7 @@ void client::error(int id, int ec, const std::string& msg) {
   m_log(ss.str());
 }
 void client::historicalData(TickerId id, const Bar& b) {
-  m_sink(id, b);
+  m_bar_hdl(id, b);
 }
 
 void client::historicalDataEnd(int req, const std::string& start, const std::string& end) {

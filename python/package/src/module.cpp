@@ -25,11 +25,12 @@ PYBIND11_MODULE(_tws11, m) {
 
   py::class_<Contract>(m, "contract")
     .def(py::init<>())
-    .def_readwrite("id"      , &Contract::conId   )
-    .def_readwrite("symbol"  , &Contract::symbol  )
-    .def_readwrite("type"    , &Contract::secType )
-    .def_readwrite("exchange", &Contract::exchange)
-    .def_readwrite("currency", &Contract::currency)
+    .def_readwrite("id"        , &Contract::conId     )
+    .def_readwrite("symbol"    , &Contract::symbol    )
+    .def_readwrite("type"      , &Contract::secType   )
+    .def_readwrite("exchange"  , &Contract::exchange  )
+    .def_readwrite("currency"  , &Contract::currency  )
+    .def_readwrite("multiplier", &Contract::multiplier)
     .def("__str__", [](const Contract& c) -> std::string {
 
         std::stringstream ss; ss
@@ -43,6 +44,11 @@ PYBIND11_MODULE(_tws11, m) {
         return ss.str();
       }
     )
+    ;
+
+  py::class_<ContractDetails>(m, "details")
+    .def(py::init<>())
+    .def_readwrite("contract", &ContractDetails::contract)
     ;
 
   py::class_<client>(m, "client")
@@ -91,7 +97,7 @@ PYBIND11_MODULE(_tws11, m) {
         std::vector<double> high, low, open, close, wap;
         std::vector<std::int64_t> volume, count;
 
-        cl.data_handle() = [&](TickerId id, const Bar& b) -> void {
+        cl.data_handle([&](TickerId id, const Bar& b) -> void {
           auto secs = std::chrono::seconds{ std::stoi( b.time ) };
            nanos.push_back(std::chrono::system_clock::time_point(secs));
             high.push_back(b.high   );
@@ -101,7 +107,7 @@ PYBIND11_MODULE(_tws11, m) {
              wap.push_back(b.wap    );
           volume.push_back(b.volume );
            count.push_back(b.count  );
-        };
+        });
 
         try {
 
@@ -120,16 +126,16 @@ PYBIND11_MODULE(_tws11, m) {
             }
 
             if (PyErr_CheckSignals() != 0) {                      // handle ctrl + C
-              cl.data_handle() = {};
+              cl.data_handle({});
               throw py::error_already_set();
             }          
           };
 
-          cl.data_handle() = {};                                  // reset the sink
+          cl.data_handle({});                                     // reset the sink
           
-        } catch(std::exception& ex) {
+        } catch(const std::exception& ex) {
           py::print(ex.what());
-          cl.data_handle() = {};
+          cl.data_handle({});
           throw ex;
         }
 
@@ -151,13 +157,83 @@ PYBIND11_MODULE(_tws11, m) {
       , py::arg("end")
       , py::arg("timeout") = -1
     )
-    .def("chain", [](client& cl, Contract& c) {
+    .def("details", [](client& cl, Contract& c, int timeout) {
 
+        std::vector<ContractDetails> retval;
+        auto wait = clock_type::time_point::max();
 
-        cl.chain_handle() = []() {};
-        return;
+        if (timeout > 0) {
+          wait = clock_type::now() + std::chrono::seconds(timeout);
+        }
+
+        cl.details_handle([&](const ContractDetails& o) { retval.push_back(o); }); 
+        
+        try {
+          cl.get_details(c);
+
+          while(cl.run()) {
+
+            if (clock_type::now() > wait) {                       // timeout
+              break;
+            }
+
+            if (PyErr_CheckSignals() != 0) {                      // handle ctrl + C
+              cl.data_handle({});
+              throw py::error_already_set();
+            }          
+          };
+
+          cl.details_handle({});                                  // reset the sink
+
+        } catch(const std::exception& ex) {
+          cl.details_handle({});
+          throw ex;
+        }
+
+        return retval;
       }
     , py::arg("contract")
+    , py::arg("timeout") = -1
+    )
+    .def("chain", [](client& cl, Contract& c, const std::string& exchange, int timeout) {
+
+        auto retval = std::vector<Contract>();
+
+        auto wait = clock_type::time_point::max();
+
+        if (timeout > 0) {
+          wait = clock_type::now() + std::chrono::seconds(timeout);
+        }
+
+        cl.chain_handle([&](Contract&& o) { retval.emplace_back(std::move(o)); });
+        
+        try {
+          cl.get_chain(c, exchange);
+
+          while(cl.run()) {
+
+            if (clock_type::now() > wait) {                       // timeout
+              break;
+            }
+
+            if (PyErr_CheckSignals() != 0) {                      // handle ctrl + C
+              cl.data_handle({});
+              throw py::error_already_set();
+            }          
+          };
+
+          cl.chain_handle({});                                    // reset the sink
+
+        } catch(const std::exception& ex) {
+          cl.chain_handle({});
+          throw ex;
+        }
+
+        return retval;
+      }
+    , py::arg("contract")
+    , py::arg("exchange") = ""
+    , py::arg("timeout") = -1
     )
     .def_property_readonly("id", &client::id)
     .def_property_readonly("host", &client::host)

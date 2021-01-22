@@ -3,7 +3,7 @@ from enum import Enum
 
 from ._tws11 import contract, client
 
-__all__ = ['client', 'currency', 'equity' ]
+__all__ = ['client', 'contract', 'currency', 'equity' ]
 
 # base instrument class  
 class instrument(ABC):
@@ -20,12 +20,25 @@ class instrument(ABC):
     self.contract_ = contract_
     pass
 
+  def populate(self, client, timeout = -1):
+    
+    res = cl.details(self.contract_, timeout)
+    
+    if len(res) == 0:
+      raise AttributeError('contract misspecified. Populate method returned no match !')
+    elif len(res) > 1:
+      raise AttributeError('contract partially specified. Populate method returned several matches !')
+    else:
+      self.contract_ = res
+
+    return
+
   def __str__(self):
     return self.contract_.__str__()
 
   @property
   def contract(self):
-    return contract_
+    return self.contract_
 
 # derived instrument types
 class currency(instrument):

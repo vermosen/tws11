@@ -38,13 +38,16 @@ public:
       idle
     , connect
     , hist_ack
+    , chain_ack
+    , details_ack
   };
 
 public:
   using data_type = Bar;
-  using logger_type = std::function<void(const std::string&)>;
-  using handle_type = std::function<void(TickerId, const data_type&)>;
-  using chain_hdl_type = std::function<void()>;
+  using logger_type         = std::function<void(const std::string&)>;
+  using data_handle_type    = std::function<void(TickerId, const data_type&)>;
+  using chain_handle_type   = std::function<void(Contract&&)>;
+  using details_handle_type = std::function<void(const ContractDetails&)>;
 
 public:
   client(int, std::string, int, bool, int, logger_type = logger_type());
@@ -59,6 +62,9 @@ public:
     , const std::string&
     , const std::chrono::system_clock::time_point&);
 
+  void get_chain(const Contract& c, const std::string& exchange);
+  void get_details(const Contract& c);
+
 public:
   int           id() const { return m_id   ; }
   std::string host() const { return m_host ; }
@@ -67,18 +73,35 @@ public:
   bool   connected() const { return m_state != state::idle; }
 
 public:
-  handle_type& data_handle() { return m_sink; }
-  chain_hdl_type& chain_handle() { return m_chain; }
-  
+  const data_handle_type&    data_handle   () const { return m_bar_hdl    ; }
+  const chain_handle_type&   chain_handle  () const { return m_chain_hdl  ; }
+  const details_handle_type& details_handle() const { return m_details_hdl; }
+  void data_handle   (const data_handle_type&    h) { m_bar_hdl     = h; }
+  void chain_handle  (const chain_handle_type&   h) { m_chain_hdl   = h; }
+  void details_handle(const details_handle_type& h) { m_details_hdl = h; }
+
 // Ewrapper interface
 protected:
   void error(int, int, const std::string&) override final;
   void historicalData(TickerId, const Bar&) override final;
   void historicalDataEnd(int, const std::string&, const std::string&) override final;
+  void securityDefinitionOptionalParameterEnd(int reqId) override final;
+  void contractDetails(int, const ContractDetails&) override final;
+  void contractDetailsEnd(int reqId) override final;
+
+  void securityDefinitionOptionalParameter(
+      int reqId
+    , const std::string& exchange
+    , int underlyingConId
+    , const std::string& tradingClass
+    , const std::string& multiplier
+    , const std::set<std::string>& expirations
+    , const std::set<double>& strikes) override final;
 
 private:
-  handle_type    m_sink ;
-  chain_hdl_type m_chain;
+  data_handle_type    m_bar_hdl    ;
+  chain_handle_type   m_chain_hdl  ;
+  details_handle_type m_details_hdl;
 
 private:
   logger_type m_log   ;
@@ -87,6 +110,9 @@ private:
   std::string m_host  ;
   int         m_port  ;
   bool        m_extra ;
+
+private:
+  static constexpr const char * m_tz = "New-York/America"; // TODO make adjustable 
 
 private:
   details::reader m_rd;
