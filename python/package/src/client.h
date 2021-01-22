@@ -12,6 +12,15 @@ class client;
 
 class EReader;
 
+struct option_desc {
+  int         m_underlying;
+  std::string m_category  ;
+  std::string m_multiplier;
+  double      m_strike    ;
+  std::string m_exp       ;
+  std::string m_exchange  ;
+};
+
 namespace details {
 
   class reader {
@@ -46,11 +55,11 @@ public:
   using data_type = Bar;
   using logger_type         = std::function<void(const std::string&)>;
   using data_handle_type    = std::function<void(TickerId, const data_type&)>;
-  using chain_handle_type   = std::function<void(Contract&&)>;
+  using chain_handle_type   = std::function<void(option_desc&&)>;
   using details_handle_type = std::function<void(const ContractDetails&)>;
 
 public:
-  client(int, std::string, int, bool, int, logger_type = logger_type());
+  client(int, std::string, int, bool, int, logger_type = logger_type(), const std::string& timezone = "America/New_York");
 
 public:
   bool connect();
@@ -66,11 +75,12 @@ public:
   void get_details(const Contract& c);
 
 public:
-  int           id() const { return m_id   ; }
-  std::string host() const { return m_host ; }
-  int         port() const { return m_port ; }
-  bool  extra_auth() const { return m_extra; }
-  bool   connected() const { return m_state != state::idle; }
+  int                 id() const { return m_id   ; }
+  std::string       host() const { return m_host ; }
+  int               port() const { return m_port ; }
+  bool        extra_auth() const { return m_extra; }
+  std::string   timezone() const { return m_tz   ; }
+  bool         connected() const { return m_state != state::idle; }
 
 public:
   const data_handle_type&    data_handle   () const { return m_bar_hdl    ; }
@@ -110,9 +120,9 @@ private:
   std::string m_host  ;
   int         m_port  ;
   bool        m_extra ;
+  std::string m_tz    ; 
 
 private:
-  static constexpr const char * m_tz = "New-York/America"; // TODO make adjustable 
 
 private:
   details::reader m_rd;

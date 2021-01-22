@@ -12,7 +12,8 @@ client::client(
   , int port
   , bool extra
   , int timeout
-  , logger_type log)
+  , logger_type log
+  , const std::string& tz)
 
   : m_log(log) 
   , m_state(state::idle)
@@ -20,6 +21,7 @@ client::client(
   , m_host(host)
   , m_port(port)
   , m_extra(extra)
+  , m_tz(tz)
   , m_rd(*this, timeout) {}
 
 bool client::connect() {
@@ -73,19 +75,16 @@ void client::get_details(const Contract& c) {
 void client::securityDefinitionOptionalParameter(
     int reqId
   , const std::string& exchange
-  , int underlyingConId
+  , int underlying
   , const std::string& tr_class
   , const std::string& multiplier
   , const std::set<std::string>& expirations
   , const std::set<double>& strikes) {
 
-  for (std::size_t i = 0; i < strikes.size(); i++) {
-    for (std::size_t j = 0; i < expirations.size(); i++) {
-      Contract c;
-      c.multiplier   = multiplier;
-      c.exchange     = exchange;
-      c.tradingClass = tr_class;
-      m_chain_hdl(std::move(c));
+  for (auto& it : strikes) {
+    for (auto& jt : expirations) {
+      option_desc d = { underlying, tr_class, multiplier, it, jt, exchange };
+      m_chain_hdl(std::move(d));
     }
   }
 }

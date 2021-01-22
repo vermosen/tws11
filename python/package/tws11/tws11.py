@@ -22,14 +22,14 @@ class instrument(ABC):
 
   def populate(self, client, timeout = -1):
     
-    res = cl.details(self.contract_, timeout)
+    details = client.details(self.contract_, timeout)
     
-    if len(res) == 0:
+    if len(details) == 0:
       raise AttributeError('contract misspecified. Populate method returned no match !')
-    elif len(res) > 1:
+    elif len(details) > 1:
       raise AttributeError('contract partially specified. Populate method returned several matches !')
     else:
-      self.contract_ = res
+      self.contract_ = details[0].contract
 
     return
 

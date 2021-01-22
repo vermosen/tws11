@@ -15,8 +15,8 @@ using namespace pybind11::literals;
 
 using clock_type = std::chrono::system_clock;
 
-std::unique_ptr<client> create_client(int id, const std::string& host, int port, bool extra, int timeout) { // creator function to bind logger to py::print
-  return std::unique_ptr<client>( new client(id, host, port, extra, timeout, [](const std::string& msg) { py::print(msg); }));
+std::unique_ptr<client> create_client(int id, const std::string& host, int port, bool extra, int timeout, const std::string& tz) { // creator function to bind logger to py::print
+  return std::unique_ptr<client>( new client(id, host, port, extra, timeout, [](const std::string& msg) { py::print(msg); }, tz));
 }
 
 PYBIND11_MODULE(_tws11, m) {
@@ -51,6 +51,30 @@ PYBIND11_MODULE(_tws11, m) {
     .def_readwrite("contract", &ContractDetails::contract)
     ;
 
+  py::class_<option_desc>(m, "option_description")
+    .def(py::init<>())
+    .def_readwrite("underlying"   , &option_desc::m_underlying)
+    .def_readwrite("category"     , &option_desc::m_category)
+    .def_readwrite("multiplier"   , &option_desc::m_multiplier)
+    .def_readwrite("strike"       , &option_desc::m_strike)
+    .def_readwrite("expiry"       , &option_desc::m_exp)
+    .def_readwrite("exchange"     , &option_desc::m_exchange)
+    .def("__str__", [](const option_desc& c) -> std::string {
+
+        std::stringstream ss; ss
+          << "underlying: " << c.m_underlying << "\n"
+          << "category:   " << c.m_category   << "\n"
+          << "multiplier: " << c.m_multiplier << "\n"
+          << "strike:     " << c.m_strike     << "\n"
+          << "expiry:     " << c.m_exp        << "\n"
+          << "exchange:   " << c.m_exchange   << "\n"
+          ;
+
+        return ss.str();
+      }
+    )
+    ;
+
   py::class_<client>(m, "client")
     .def(py::init(&create_client)
       , py::arg("id")
@@ -58,6 +82,7 @@ PYBIND11_MODULE(_tws11, m) {
       , py::arg("port")
       , py::arg("extra_auth") = false
       , py::arg("timeout") = 2000
+      , py::arg("timezone") = "America/New_York"
     )
     .def("connect", [](client& cl, int timeout) -> bool {
 
@@ -140,7 +165,7 @@ PYBIND11_MODULE(_tws11, m) {
         }
 
         return py::dict(
-            "nanoseconds"_a = nanos
+                   "time"_a = nanos
           ,        "high"_a = high
           ,         "low"_a = low
           ,        "open"_a = open
@@ -197,7 +222,7 @@ PYBIND11_MODULE(_tws11, m) {
     )
     .def("chain", [](client& cl, Contract& c, const std::string& exchange, int timeout) {
 
-        auto retval = std::vector<Contract>();
+        auto retval = std::vector<option_desc>();
 
         auto wait = clock_type::time_point::max();
 
@@ -205,7 +230,7 @@ PYBIND11_MODULE(_tws11, m) {
           wait = clock_type::now() + std::chrono::seconds(timeout);
         }
 
-        cl.chain_handle([&](Contract&& o) { retval.emplace_back(std::move(o)); });
+        cl.chain_handle([&](option_desc&& o) { retval.emplace_back(std::move(o)); });
         
         try {
           cl.get_chain(c, exchange);
@@ -245,6 +270,7 @@ PYBIND11_MODULE(_tws11, m) {
         std::ostringstream ss; ss 
           << "client host: '" << cl.host() << "'\n" 
           << "port:         " << cl.port() << "\n"
+          << "timezone:     " << cl.timezone() << "\n"
           ;
         return ss.str();
       }
