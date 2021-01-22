@@ -3,7 +3,7 @@ from enum import Enum
 
 from ._tws11 import contract, client
 
-__all__ = ['client', 'contract', 'currency', 'equity' ]
+__all__ = ['client', 'contract', 'currency', 'equity', 'option' ]
 
 # base instrument class  
 class instrument(ABC):
@@ -53,7 +53,6 @@ class currency(instrument):
 
     super().__init__(c)
 
-
 class equity(instrument):
   
   def __init__(self, symbol, denomination, exchange):
@@ -64,4 +63,36 @@ class equity(instrument):
     c.exchange = exchange
     c.type = instrument.code.stk.name.upper()
 
+    super().__init__(c)
+
+  # for now we only consider stock options ...
+  def get_chain(self, client, exchange='', timeout=-1):
+    desc = client.chain(self.contract, exchange, timeout)
+    return desc
+
+class option(instrument):
+  
+  class side(Enum):
+    call = 1
+    put  = 2
+
+  def __init__(self, underlying, strike, expiry, currency, exchange, side = side.call, multiplier = 100, category=None):
+
+    tmp = ''
+    if type(expiry) == int:
+      tmp = str(expiry)
+    elif type(expiry) == str:
+      tmp = expiry
+    #elif type(expiry) == 
+    
+    c = contract()
+    c.symbol     = underlying
+    c.type       = instrument.code.opt.name.upper()
+    c.exchange   = exchange
+    c.currency   = currency
+    c.expiry     = expiry
+    c.strike     = strike
+    c.side       = "C" if side == side.call else "P"
+    c.multiplier = str(multiplier)
+    c.category   = underlying if category is None else category
     super().__init__(c)

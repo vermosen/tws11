@@ -25,20 +25,30 @@ PYBIND11_MODULE(_tws11, m) {
 
   py::class_<Contract>(m, "contract")
     .def(py::init<>())
-    .def_readwrite("id"        , &Contract::conId     )
-    .def_readwrite("symbol"    , &Contract::symbol    )
-    .def_readwrite("type"      , &Contract::secType   )
-    .def_readwrite("exchange"  , &Contract::exchange  )
-    .def_readwrite("currency"  , &Contract::currency  )
-    .def_readwrite("multiplier", &Contract::multiplier)
+    .def_readwrite("id"        , &Contract::conId       )
+    .def_readwrite("symbol"    , &Contract::symbol      )
+    .def_readwrite("type"      , &Contract::secType     )
+    .def_readwrite("exchange"  , &Contract::exchange    )
+    .def_readwrite("currency"  , &Contract::currency    )
+    .def_readwrite("multiplier", &Contract::multiplier  )
+    .def_readwrite("side"      , &Contract::right       )
+    .def_readwrite("strike"    , &Contract::strike      )
+    .def_readwrite("expiry"    , &Contract::lastTradeDateOrContractMonth)
+    .def_readwrite("category"  , &Contract::tradingClass)
+
     .def("__str__", [](const Contract& c) -> std::string {
 
         std::stringstream ss; ss
-          << "contract id: " << c.conId << "\n"
-          << "symbol:   " << c.symbol   << "\n"
-          << "type:     " << c.secType  << "\n"
-          << "exchange: " << c.exchange << "\n"
-          << "currency: " << c.currency << "\n"
+          << "contract id: " << c.conId       << "\n"
+          << "symbol:     " << c.symbol       << "\n"
+          << "type:       " << c.secType      << "\n"
+          << "exchange:   " << c.exchange     << "\n"
+          << "currency:   " << c.currency     << "\n"
+          << "multiplier: " << c.multiplier   << "\n"
+          << "side:       " << c.right        << "\n"
+          << "strike:     " << c.strike       << "\n"
+          << "expiry:     " << c.lastTradeDateOrContractMonth  << "\n" 
+          << "category:   " << c.tradingClass << "\n"
           ;
 
         return ss.str();
@@ -222,6 +232,9 @@ PYBIND11_MODULE(_tws11, m) {
     )
     .def("chain", [](client& cl, Contract& c, const std::string& exchange, int timeout) {
 
+        // in stock chain requests, we need to query in bulk and filter 
+        // the data based on the exchange which is very wasteful ...
+        // see https://groups.io/g/twsapi/topic/68767782
         auto retval = std::vector<option_desc>();
 
         auto wait = clock_type::time_point::max();
@@ -230,10 +243,22 @@ PYBIND11_MODULE(_tws11, m) {
           wait = clock_type::now() + std::chrono::seconds(timeout);
         }
 
-        cl.chain_handle([&](option_desc&& o) { retval.emplace_back(std::move(o)); });
-        
+        if (exchange == "") {
+          cl.chain_handle([&](option_desc&& o) {
+            retval.emplace_back(std::move(o));
+          });
+        } else {
+          cl.chain_handle([&](option_desc&& o) {
+            if (o.m_exchange == exchange) {
+              retval.emplace_back(std::move(o));
+            }
+          });
+        }
+
         try {
-          cl.get_chain(c, exchange);
+          if (c.secType == "STK") {
+            cl.get_chain(c, "");
+          }                                                       // TODO: future contracts would be handled differently
 
           while(cl.run()) {
 
@@ -258,7 +283,7 @@ PYBIND11_MODULE(_tws11, m) {
       }
     , py::arg("contract")
     , py::arg("exchange") = ""
-    , py::arg("timeout") = -1
+    , py::arg("timeout" ) = -1
     )
     .def_property_readonly("id", &client::id)
     .def_property_readonly("host", &client::host)
