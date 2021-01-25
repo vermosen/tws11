@@ -1,14 +1,16 @@
 #include "mtclient.h"
 
-#include "client.h"
+mtclient::mtclient(
+    int id
+  , std::string host
+  , int port
+  , bool extra
+  , int timeout
+  , std::size_t pool_size
+  , logger_type log
+  , const std::string& timezone) 
+  : m_tp(pool_size)
+  , m_client(id, host, port, extra, timeout, log, timezone) {}
 
-namespace details {
-  threadpool::threadpool(std::size_t sz) 
-  : m_pool(sz) {
-    for (auto& t : m_pool) {
-      t.detach();
-    }
-  }
-}
-
-batch::batch(client& cl) : m_cl(cl) {}
+  bool mtclient::connect() { return m_client.connect(); }
+  void mtclient::disconnect() { m_client.disconnect(); }

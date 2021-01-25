@@ -41,4 +41,6 @@ function(add_test_py)
 
 endfunction(add_test_py)
 
+add_subdirectory(client)
 add_subdirectory(contract)
+add_subdirectory(threadpool)

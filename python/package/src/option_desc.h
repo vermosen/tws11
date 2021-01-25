@@ -1,3 +1,7 @@
+#pragma once
+#ifndef TWS11_SRC_OPTION_DESC_H
+#define TWS11_SRC_OPTION_DESC_H
+
 #include <string>
 
 struct option_desc {
@@ -8,3 +12,5 @@ struct option_desc {
   std::string m_exp       ;
   std::string m_exchange  ;
 };
+
+#endif // TWS11_SRC_OPTION_DESC_H

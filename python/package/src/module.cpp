@@ -16,10 +16,6 @@ using namespace pybind11::literals;
 
 using clock_type = std::chrono::system_clock;
 
-std::unique_ptr<client> create_client(int id, const std::string& host, int port, bool extra, int timeout, const std::string& tz) { // creator function to bind logger to py::print
-  return std::unique_ptr<client>( new client(id, host, port, extra, timeout, [](const std::string& msg) { py::print(msg); }, tz));
-}
-
 PYBIND11_MODULE(_tws11, m) {
 
   m.doc() = "tws api";
@@ -87,7 +83,15 @@ PYBIND11_MODULE(_tws11, m) {
     ;
 
   py::class_<client>(m, "client")
-    .def(py::init(&create_client)
+    .def(py::init([](int id, const std::string& host, int port, bool extra, int timeout, const std::string& tz) -> std::unique_ptr<client> {
+        return std::unique_ptr<client>( 
+          new client(id
+            , host, port
+            , extra, timeout
+            , [](const std::string& msg) { py::print(msg); }
+            , tz
+        ));
+      })
       , py::arg("id")
       , py::arg("host")
       , py::arg("port")
@@ -303,6 +307,129 @@ PYBIND11_MODULE(_tws11, m) {
     )
     ;
 
+/* std::unique_ptr<mtclient> create_mtclient(int id, const std::string& host, int port, bool extra, int nthreads, int timeout, const std::string& tz) { // creator function to bind logger to py::print
+  
+  if (nthreads == -1) {
+    nthreads = std::max(1U, std::thread::hardware_concurrency() - 1);
+  }
+
+  return std::unique_ptr<mtclient>( new mtclient(id, host, port, extra, nthreads, timeout, [](const std::string& msg) { py::print(msg); }, tz));
+} */
+
   py::class_<mtclient>(m, "mtclient")
+    .def(py::init([](int id
+      , const std::string& host
+      , int port, bool extra
+      , int nthreads, int timeout
+      , const std::string& tz) -> std::unique_ptr<mtclient> {
+
+        if (nthreads == -1) {
+          nthreads = std::max(1U, std::thread::hardware_concurrency() - 1);
+        }
+
+        return std::unique_ptr<mtclient>(
+          new mtclient(id, host, port, extra
+            , nthreads, timeout
+            , [](const std::string& msg) { py::print(msg); }, tz
+          )
+        );
+      })
+      , py::arg("id")
+      , py::arg("host")
+      , py::arg("port")
+      , py::arg("extra_auth") = false
+      , py::arg("nthreads") = -1
+      , py::arg("timeout") = 2000
+      , py::arg("timezone") = "America/New_York"
+    )
+    .def("connect", [](mtclient& cl, int timeout) -> bool {
+
+        auto wait = clock_type::time_point::max();
+
+        if (timeout > 0) {
+          wait = clock_type::now() + std::chrono::seconds(timeout);
+        }
+
+        cl.connect();
+
+        while(clock_type::now() < wait) {
+
+          if (PyErr_CheckSignals() != 0) {        // handle ctrl + C
+            throw py::error_already_set();
+          }
+
+          if (cl.connected()) {
+            return true;
+          }
+        };
+
+        return false;
+      }
+      , py::arg("timeout") = -1
+    )
+    .def("disconnect", &mtclient::disconnect)
+    /* .def("request", [](mtclient& cl
+      , const std::vector<Contract>& contracts
+      , const std::string& field
+      , const std::string& bar
+      , const std::string& dur
+      , clock_type::time_point end
+      , int timeout) -> py::dict {
+
+        std::vector<clock_type::time_point> nanos;
+        std::vector<double> high, low, open, close, wap;
+        std::vector<std::int64_t> volume, count;
+
+        try {
+
+          auto wait = clock_type::time_point::max();
+
+          if (timeout > 0) {
+            wait = clock_type::now() + std::chrono::seconds(timeout);
+          }
+          
+          // std::vector<future_type> futs;
+          for (auto& c : contracts) {
+            auto fut = cl.request_async(c, field, bar, dur, end);
+          }
+
+          while(cl.run()) {
+
+            if (clock_type::now() > wait) {                       // timeout
+              break;
+            }
+
+            if (PyErr_CheckSignals() != 0) {                      // handle ctrl + C
+              cl.data_handle({});
+              throw py::error_already_set();
+            }          
+          };
+
+          cl.data_handle({});                                     // reset the sink
+          
+        } catch(const std::exception& ex) {
+          py::print(ex.what());
+          cl.data_handle({});
+          throw ex;
+        }
+
+        return py::dict(
+                   "time"_a = nanos
+          ,        "high"_a = high
+          ,         "low"_a = low
+          ,        "open"_a = open
+          ,       "close"_a = close
+          ,         "wap"_a = wap
+          ,      "volume"_a = volume
+          ,       "count"_a = count
+        );
+      }
+      , py::arg("contract")
+      , py::arg("field")
+      , py::arg("bar")
+      , py::arg("duration")
+      , py::arg("end")
+      , py::arg("timeout") = -1
+    ) */
     ;
 }

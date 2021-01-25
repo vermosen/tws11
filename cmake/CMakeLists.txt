@@ -55,3 +55,5 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
 		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 	endif()
 endif()
+
+find_package(Threads)

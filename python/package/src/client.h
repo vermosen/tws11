@@ -1,4 +1,8 @@
 
+#pragma once
+#ifndef TWS11_SRC_CLIENT_H
+#define TWS11_SRC_CLIENT_H
+
 #include <memory>
 #include <chrono>
 #include <string>
@@ -51,7 +55,7 @@ public:
   using details_handle_type = std::function<void(const ContractDetails&)>;
 
 public:
-  client(int, std::string, int, bool, int, logger_type = logger_type(), const std::string& timezone = "America/New_York");
+  client(int, std::string, int, bool, int, logger_type = logger_type(), const std::string& = "America/New_York");
 
 public:
   bool connect();
@@ -63,8 +67,8 @@ public:
     , const std::string&
     , const std::chrono::system_clock::time_point&);
 
-  void get_chain(const Contract& c, const std::string& exchange);
-  void get_details(const Contract& c);
+  void get_chain(const Contract&, const std::string&);
+  void get_details(const Contract&);
 
 public:
   int                 id() const { return m_id   ; }
@@ -119,3 +123,5 @@ private:
 private:
   details::reader m_rd;
 };
+
+#endif // TWS11_SRC_CLIENT_H

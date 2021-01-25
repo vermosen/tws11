@@ -1,38 +1,33 @@
 
-#include <mutex>
-#include <queue>
-#include <thread>
-#include <vector>
-#include <condition_variable>
 
-class client;
+#include "threadpool.h"
+#include "client.h"
 
-namespace details {
+class mtclient {
+public:
+  using logger_type         = typename client::logger_type;
+  using data_handle_type    = typename client::data_handle_type;
+  using chain_handle_type   = typename client::chain_handle_type;
+  using details_handle_type = typename client::details_handle_type;
 
-  class job {};
+public:
+  mtclient(int
+    , std::string
+    , int
+    , bool
+    , int
+    , std::size_t
+    , logger_type = logger_type()
+    , const std::string& = "America/New_York");
 
-  // for example:
-  // https://codereview.stackexchange.com/questions/221617/thread-pool-c-implementation
-  class threadpool {
-  public:
-    threadpool(std::size_t sz);
-    threadpool(const threadpool&) = delete;
-    threadpool &operator=(const threadpool&) = delete;
+public:
+  bool    connect();
+  void disconnect();
 
-  private:
-    std::size_t m_nthreads; // number of threads in the pool
-    std::vector<std::thread> m_pool; //the actual thread pool
-    std::queue<std::shared_ptr<job>> m_queue;
-    std::condition_variable m_cv;// used to notify threads about available jobs
-    std::mutex m_mutex; // used to push/pop jobs to/from the queue
-  };
-};
-
-class batch {
-  batch(client& cl);
+public:
+  bool connected() const { return m_client.connected(); }
 
 private:
-  client& m_cl;
+  threadpool  m_tp    ;
+  client      m_client;
 };
-
-class mtclient {};
