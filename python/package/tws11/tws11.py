@@ -78,13 +78,18 @@ class option(instrument):
 
   def __init__(self, underlying, strike, expiry, currency, exchange, side = side.call, multiplier = 100, category=None):
 
+    from datetime import datetime
+
     tmp = ''
     if type(expiry) == int:
       tmp = str(expiry)
     elif type(expiry) == str:
       tmp = expiry
-    #elif type(expiry) == 
-    
+    elif type(expiry) == datetime:
+      # TODO
+      # tmp = None  
+      pass
+
     c = contract()
     c.symbol     = underlying
     c.type       = instrument.code.opt.name.upper()
@@ -96,3 +101,22 @@ class option(instrument):
     c.multiplier = str(multiplier)
     c.category   = underlying if category is None else category
     super().__init__(c)
+
+  # ctor from option description object
+  @staticmethod
+  def from_description(description, currency, side = side.call):
+
+    retval = option(
+      underlying=description.underlying, 
+      strike=float(description.strike),
+      expiry=str(description.expiry),
+      currency=currency,
+      exchange=description.exchange,
+      side=side,
+      multiplier=description.multiplier,
+      category=description.category
+    )
+
+    return retval
+    
+    

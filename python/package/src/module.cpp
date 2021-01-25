@@ -5,6 +5,7 @@
 #include <tws/Contract.h>
 
 #include "client.h"
+#include "mtclient.h"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/chrono.h>
@@ -121,7 +122,7 @@ PYBIND11_MODULE(_tws11, m) {
     )
     .def("disconnect", &client::disconnect)
     .def("request", [](client& cl
-      , Contract& c
+      , const Contract& c
       , const std::string& field
       , const std::string& bar
       , const std::string& dur
@@ -300,5 +301,8 @@ PYBIND11_MODULE(_tws11, m) {
         return ss.str();
       }
     )
+    ;
+
+  py::class_<mtclient>(m, "mtclient")
     ;
 }

@@ -8,18 +8,11 @@
 #include <tws/EReaderOSSignal.h>
 #include <tws/EClientSocket.h>
 
-class client;
+#include "option_desc.h"
 
 class EReader;
 
-struct option_desc {
-  int         m_underlying;
-  std::string m_category  ;
-  std::string m_multiplier;
-  double      m_strike    ;
-  std::string m_exp       ;
-  std::string m_exchange  ;
-};
+class client; // fwd decl
 
 namespace details {
 
@@ -52,9 +45,8 @@ public:
   };
 
 public:
-  using data_type = Bar;
   using logger_type         = std::function<void(const std::string&)>;
-  using data_handle_type    = std::function<void(TickerId, const data_type&)>;
+  using data_handle_type    = std::function<void(TickerId, const Bar&)>;
   using chain_handle_type   = std::function<void(option_desc&&)>;
   using details_handle_type = std::function<void(const ContractDetails&)>;
 
