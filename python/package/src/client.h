@@ -49,10 +49,11 @@ public:
   };
 
 public:
-  using logger_type         = std::function<void(const std::string&)>;
-  using data_handle_type    = std::function<void(TickerId, const Bar&)>;
-  using chain_handle_type   = std::function<void(option_desc&&)>;
-  using details_handle_type = std::function<void(const ContractDetails&)>;
+  using logger_type            = std::function<void(const std::string&)>    ;
+  using data_handle_type       = std::function<void(TickerId, const Bar&)>  ;
+  using chain_handle_type      = std::function<void(option_desc&&)>         ;
+  using details_handle_type    = std::function<void(const ContractDetails&)>;
+  using completion_handle_type = std::function<void(int)>                   ;
 
 public:
   client(int, std::string, int, bool, int, logger_type = logger_type(), const std::string& = "America/New_York");
@@ -61,14 +62,16 @@ public:
   bool connect();
   void disconnect();
   bool run();
-  void request(const Contract&
+  void request(TickerId
+    , const Contract&
     , const std::string&
     , const std::string&
     , const std::string&
     , const std::chrono::system_clock::time_point&);
 
   void get_chain(const Contract&, const std::string&);
-  void get_details(const Contract&);
+  void get_details(int id, const Contract&);
+  void reset();                   
 
 public:
   int                 id() const { return m_id   ; }
@@ -79,12 +82,10 @@ public:
   bool         connected() const { return m_state != state::idle; }
 
 public:
-  const data_handle_type&    data_handle   () const { return m_bar_hdl    ; }
-  const chain_handle_type&   chain_handle  () const { return m_chain_hdl  ; }
-  const details_handle_type& details_handle() const { return m_details_hdl; }
-  void data_handle   (const data_handle_type&    h) { m_bar_hdl     = h; }
-  void chain_handle  (const chain_handle_type&   h) { m_chain_hdl   = h; }
-  void details_handle(const details_handle_type& h) { m_details_hdl = h; }
+  void       data_handle(const data_handle_type&       h) { m_bar_hdl        = h; }
+  void      chain_handle(const chain_handle_type&      h) { m_chain_hdl      = h; }
+  void    details_handle(const details_handle_type&    h) { m_details_hdl    = h; }
+  void completion_handle(const completion_handle_type& h) { m_completion_hdl = h; }
 
 // Ewrapper interface
 protected:
@@ -105,9 +106,10 @@ protected:
     , const std::set<double>& strikes) override final;
 
 private:
-  data_handle_type    m_bar_hdl    ;
-  chain_handle_type   m_chain_hdl  ;
-  details_handle_type m_details_hdl;
+  data_handle_type       m_bar_hdl       ;
+  chain_handle_type      m_chain_hdl     ;
+  details_handle_type    m_details_hdl   ;
+  completion_handle_type m_completion_hdl;
 
 private:
   logger_type m_log   ;
@@ -123,5 +125,16 @@ private:
 private:
   details::reader m_rd;
 };
+
+// if usefull
+/* class guard {
+public:
+  guard(client& cl) : m_cl(cl) {}
+  ~guard() {
+    m_cl.reset();
+  }
+private:
+  client& m_cl;
+}; */
 
 #endif // TWS11_SRC_CLIENT_H

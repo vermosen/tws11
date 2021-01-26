@@ -20,18 +20,22 @@ class instrument(ABC):
     self.contract_ = contract_
     pass
 
-  def populate(self, client, timeout = -1):
-    
-    details = client.details(self.contract_, timeout)
-    
-    if len(details) == 0:
-      raise AttributeError('contract misspecified. Populate method returned no match !')
-    elif len(details) > 1:
-      raise AttributeError('contract partially specified. Populate method returned several matches !')
-    else:
-      self.contract_ = details[0].contract
+  def populate(self, client, timeout = -1, verbose = False):
 
-    return
+    try:    
+      # this one throws if the contract is misformed
+      details = client.details(self.contract_, timeout, verbose)
+    
+      if len(details) == 0:
+        raise AttributeError('contract misspecified. Populate method returned no match !')
+      elif len(details) > 1:
+        raise AttributeError('contract partially specified. Populate method returned several matches !')
+      else:
+        self.contract_ = details[0].contract      
+      return True
+    
+    except:
+      return False
 
   def __str__(self):
     return self.contract_.__str__()

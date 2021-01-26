@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+      {
+          "name": "(gdb) py-test",
+          "type": "cppdbg",
+          "request": "launch",
+          "program": "/opt/miniconda/envs/py38/bin/python",
+          "args": [ 
+              "${workspaceFolder}/python/scripts/option-query.py"
+          ],
+          "stopAtEntry": false,
+          "cwd": "${workspaceFolder}",
+          "environment": [ {"name": "PYTHONPATH", "value": "${workspaceFolder}/lib/Debug/python"}],
+          "externalConsole": false,
+          "MIMode": "gdb",
+          "miDebuggerPath": "/opt/gcc84/bin/gdb",
+          "setupCommands": [
+              {
+                  "description": "Enable pretty-printing for gdb",
+                  "text": "-enable-pretty-printing",
+                  "ignoreFailures": true
+              }
+          ]
+      },
+  ]
+}

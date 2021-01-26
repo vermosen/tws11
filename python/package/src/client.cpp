@@ -41,11 +41,20 @@ void client::disconnect() {
 bool client::run() {
   m_rd.m_oss.waitForSignal();
   m_rd.m_impl->processMsgs();
-  return (m_state != state::idle && m_state != state::connect);
+  return (m_state != state::idle);
+}
+
+void client::reset() {
+             m_log = {}; 
+         m_bar_hdl = {};
+       m_chain_hdl = {};
+     m_details_hdl = {};
+  m_completion_hdl = {};
 }
 
 void client::request(
-      const Contract& c
+      TickerId id 
+    , const Contract& c
     , const std::string& field
     , const std::string& bar
     , const std::string& dur
@@ -56,7 +65,7 @@ void client::request(
   std::tm m = *std::gmtime(&t);
   ss << std::put_time(&m, "%Y%m%d %H:%M:%S") << " " << m_tz;
 
-  m_rd.m_sock.reqHistoricalData(1, c, ss.str(), dur, bar, field, false, 2, false, TagValueListSPtr());
+  m_rd.m_sock.reqHistoricalData(id, c, ss.str(), dur, bar, field, false, 2, false, TagValueListSPtr());
   m_state = state::hist_ack;
 }
 
@@ -67,8 +76,8 @@ void client::get_chain(const Contract& c, const std::string& exchange) {
   m_state = state::chain_ack;
 }
 
-void client::get_details(const Contract& c) {
-  m_rd.m_sock.reqContractDetails(1, c);
+void client::get_details(int id, const Contract& c) {
+  m_rd.m_sock.reqContractDetails(id, c);
   m_state = state::details_ack;
 }
 
@@ -88,17 +97,9 @@ void client::securityDefinitionOptionalParameter(
     }
   }
 }
-  
-void client::securityDefinitionOptionalParameterEnd(int reqId) {
-  m_state = state::connect;
-}
 
 void client::contractDetails(int id, const ContractDetails& c) {
   m_details_hdl(c);
-}
-
-void client::contractDetailsEnd(int id) {
-  m_state = state::connect;
 }
 
 void client::error(int id, int ec, const std::string& msg) {
@@ -107,8 +108,8 @@ void client::error(int id, int ec, const std::string& msg) {
     return;
   }
 
-  if (ec == 162) {                // Trading TWS session is connected from a different IP address 
-    m_state = state::connect;
+  if (ec == 162) {                // msg: Trading TWS session is connected from a different IP address 
+    m_state = state::idle;
   }
 
   std::stringstream ss; ss
@@ -124,19 +125,30 @@ void client::historicalData(TickerId id, const Bar& b) {
   m_bar_hdl(id, b);
 }
 
-void client::historicalDataEnd(int req, const std::string& start, const std::string& end) {
+void client::historicalDataEnd(int id, const std::string& start, const std::string& end) {
 
-  std::stringstream ss; ss
+  /* std::stringstream ss; ss
     << "[info] " 
     << "historical data returned for req - "
-    << req << ", start - "
+    << id << ", start - "
     << start << ", end - "
     << end
     ;
 
-  m_log(ss.str());
+  m_log(ss.str()); */
 
-  m_state = state::connect; // reset the client state
+  m_state = state::connect;
+  m_completion_hdl(id);
+}
+
+void client::securityDefinitionOptionalParameterEnd(int id) {
+  m_state = state::connect;
+  m_completion_hdl(id);
+}
+
+void client::contractDetailsEnd(int id) {
+  m_state = state::connect;
+  m_completion_hdl(id);
 }
 
 namespace details {
