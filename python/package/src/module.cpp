@@ -208,14 +208,18 @@ PYBIND11_MODULE(_tws11, m) {
       , const std::string& bar
       , const std::string& dur
       , clock_type::time_point end
-      , int timeout) -> py::dict {
+      , int timeout
+      , bool verbose) -> py::dict {
 
         std::vector<TickerId> ids;
         std::vector<clock_type::time_point> nanos;
         std::vector<double> high, low, open, close, wap;
         std::vector<std::int64_t> volume, count;
 
-        std::size_t completed = 0;
+        std::size_t nrequest = contracts.size();
+        std::size_t completed, failed;
+        completed = 0; failed = 0;
+
         cl.completion_handle([&](int id) { 
           completed++; 
         });
@@ -233,48 +237,79 @@ PYBIND11_MODULE(_tws11, m) {
              ids.push_back(id       );
         });
 
-        try {
+        auto wait = clock_type::time_point::max();
 
-          auto wait = clock_type::time_point::max();
+        if (timeout > 0) {
+          wait = clock_type::now() + std::chrono::seconds(timeout);
+        }
+        
+        try {                                                   // if an error is thrown while submitting -> abort
 
-          if (timeout > 0) {
-            wait = clock_type::now() + std::chrono::seconds(timeout);
-          }
-          
           std::size_t i = 0;
           for (auto& c : contracts) {
             cl.request(++i, c, field, bar, dur, end);
           }
+        } catch(const std::exception& ex) {
+          if (verbose) {
+            std::stringstream ss; ss
+              << "error submitting request: "
+              << ex.what()
+              ;
+
+            py::print(ss.str());
+          }
+
+          cl.reset();
+          throw ex;
+        }
           
-          while(cl.run() && completed < contracts.size()) {
+        while(completed + failed < nrequest) {
+
+          try {                                                   // if an error is thrown while receiving -> continue until we recieved all the data
+
+            cl.run();
 
             if (clock_type::now() > wait) {                       // timeout
               break;
             }
 
-            if (PyErr_CheckSignals() != 0) {                      // handle ctrl + C
-              throw py::error_already_set();
-            }          
-          };
+          } catch (const std::exception& ex) {
 
-          cl.reset();                                             // reset the handles
-          
-        } catch(const std::exception& ex) {
-          py::print(ex.what());
-          cl.reset();
-          throw ex;
+            failed++;                                             // we assume failures count here
+            if (verbose) {
+              std::stringstream ss; ss
+                << "error while recieving data: "
+                << ex.what()
+                ;
+
+              py::print(ss.str());
+            }
+          }
+        };
+
+        if (verbose) {
+          std::stringstream ss; ss
+            << "queried " 
+            << nrequest
+            << " contracts, retrieved: "
+            << completed 
+            << ", failed: "
+            << failed
+            ;
+
+          py::print(ss.str());
         }
-
+        
         return py::dict(
-                   "time"_a = nanos
-          ,          "id"_a = ids
-          ,        "high"_a = high
-          ,         "low"_a = low
-          ,        "open"_a = open
-          ,       "close"_a = close
-          ,         "wap"_a = wap
-          ,      "volume"_a = volume
-          ,       "count"_a = count
+              "time"_a = nanos
+          ,     "id"_a = ids
+          ,   "high"_a = high
+          ,    "low"_a = low
+          ,   "open"_a = open
+          ,  "close"_a = close
+          ,    "wap"_a = wap
+          , "volume"_a = volume
+          ,  "count"_a = count
         );
       }
       , py::arg("contract")
@@ -283,6 +318,7 @@ PYBIND11_MODULE(_tws11, m) {
       , py::arg("duration")
       , py::arg("end")
       , py::arg("timeout") = -1
+      , py::arg("verbose") = false
     )
     .def("details", [](
         client& cl
