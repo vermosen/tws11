@@ -52,7 +52,7 @@ public:
   using logger_type            = std::function<void(const std::string&)>    ;
   using data_handle_type       = std::function<void(TickerId, const Bar&)>  ;
   using chain_handle_type      = std::function<void(option_desc&&)>         ;
-  using details_handle_type    = std::function<void(const ContractDetails&)>;
+  using details_handle_type    = std::function<void(int, const ContractDetails&)>;
   using completion_handle_type = std::function<void(int)>                   ;
 
 public:

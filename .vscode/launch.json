@@ -7,7 +7,7 @@
           "request": "launch",
           "program": "/opt/miniconda/envs/py38/bin/python",
           "args": [ 
-              "${workspaceFolder}/python/scripts/option-query.py"
+              "/home/vermosen/test.py"
           ],
           "stopAtEntry": false,
           "cwd": "${workspaceFolder}",
@@ -22,6 +22,6 @@
                   "ignoreFailures": true
               }
           ]
-      },
+      }
   ]
 }

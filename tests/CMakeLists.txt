@@ -44,3 +44,9 @@ endfunction(add_test_py)
 add_subdirectory(client)
 add_subdirectory(contract)
 add_subdirectory(threadpool)
+
+if(ARROW_EXPERIMENTAL)
+
+	add_subdirectory(arrow)
+
+endif()

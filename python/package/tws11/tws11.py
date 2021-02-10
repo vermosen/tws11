@@ -24,7 +24,7 @@ class instrument(ABC):
 
     try:    
       # this one throws if the contract is misformed
-      details = client.details(self.contract_, timeout, verbose)
+      details = client.details([self.contract_], timeout, verbose)
     
       if len(details) == 0:
         raise AttributeError('contract misspecified. Populate method returned no match !')

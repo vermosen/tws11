@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.13)
 
 # project options
-option(BUILD_DOC "create the sphinx documentation of the project" OFF)
-option(BUILD_TESTS "create the testsuite of the project" ON)
-option(CMAKE_WERROR "activate tighter compilation checks" OFF)
-option(CMAKE_VERBOSE "enable debug + compiler logging" OFF)
+option(BUILD_DOC          "create the sphinx documentation of the project" OFF)
+option(BUILD_TESTS        "create the testsuite of the project" ON)
+option(CMAKE_WERROR       "activate tighter compilation checks" OFF)
+option(CMAKE_VERBOSE      "enables debug + compiler logging" OFF)
+option(ARROW_EXPERIMENTAL "enables arrow experimental module" ON)
 
 set(PROJECT_HOME "${CMAKE_CURRENT_LIST_DIR}")
 set(PROJECT_NAME tws11 CACHE STRING "" FORCE)
@@ -52,10 +53,15 @@ project(
 set(GTEST_VERS     "1.8.1" )
 set(TWS_VERS       "9.79.1")
 set(PYBIND11_VERS  "2.5.0" )
+set(ARROW_VERS     "3.0.0" )
 
 set(PROJECT_PACKAGES
-	tws gtest pybind11
+	tws gtest pybind11 arrow
 )
+
+
+# TODO: arrow recipe does not look for deps location for linking 
+set(CONAN_OPTIONS "arrow:pyarrow=True")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(CONAN_OPTIONS "${CONAN_OPTIONS};gbench:lto=False")

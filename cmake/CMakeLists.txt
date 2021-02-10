@@ -37,7 +37,6 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
 endif()
 
 include(${CMAKE_BINARY_DIR}/conan.cmake)
-set(CMAKE_PROGRAM_PATH "${CONAN_BIN_PATH};${CMAKE_PROGRAM_PATH}")
 conan_check(VERSION 1.12.0 REQUIRED)
 
 # enable the languages & set the dialect

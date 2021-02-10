@@ -1,6 +1,7 @@
 
 #include <sstream>
 #include <vector>
+#include <unordered_set>
 
 #include <tws/Contract.h>
 
@@ -10,6 +11,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/chrono.h>
 #include <pybind11/stl.h>
+
+#include "arrow.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -267,9 +270,7 @@ PYBIND11_MODULE(_tws11, m) {
 
           try {                                                   // if an error is thrown while receiving -> continue until we recieved all the data
 
-            cl.run();
-
-            if (clock_type::now() > wait) {                       // timeout
+            if (!cl.run() || clock_type::now() > wait) {          // disconnected or timeout
               break;
             }
 
@@ -322,52 +323,67 @@ PYBIND11_MODULE(_tws11, m) {
     )
     .def("details", [](
         client& cl
-      , Contract& c
+      , std::vector<Contract>& contracts
       , int timeout
       , bool verbose) {
 
         std::vector<ContractDetails> retval;
+        std::unordered_set<int> ids;
+
         auto wait = clock_type::time_point::max();
 
         if (timeout > 0) {
           wait = clock_type::now() + std::chrono::seconds(timeout);
         }
 
-        bool completed = false;
+        int failed, nrequest;
+        failed = 0; nrequest = 0;
+
         cl.completion_handle([&](int id) { 
-          completed = true; 
+          ids.insert(id);
         });
 
         cl.details_handle(
-          [&](const ContractDetails& o) { retval.push_back(o); 
-        }); 
+          [&](int id, const ContractDetails& d) {                 // more than one key may be returned here
+            retval.push_back(d);
+          }
+        ); 
         
         try {
-          cl.get_details(/* id= */1, c);
-
-          while(cl.run() && !completed) {
-
-            if (clock_type::now() > wait) {                       // timeout
-              break;
-            }
-
-            if (PyErr_CheckSignals() != 0) {                      // handle ctrl + C
-              throw py::error_already_set();
-            }          
-          };
-
-          cl.reset();                                             // reset the client
-
-        } catch(const std::exception& ex) {
-
-          if (verbose) {
-            py::print(ex.what());
+          
+          for (auto& c : contracts) {
+            cl.get_details(++nrequest, c);
           }
-
+          
+        } catch(const std::exception& ex) {       // fatal
+          py::print(ex.what());
           cl.reset();
           throw ex;
         }
 
+        while(ids.size() + failed < nrequest) {
+
+          try {                                                   // if an error is thrown while receiving -> continue until we recieved all the data
+
+            if (!cl.run() || clock_type::now() > wait) {          // disconnected or timeout
+              break;
+            }
+
+          } catch (const std::exception& ex) {
+
+            failed++;                                             // we assume failures count here
+            if (verbose) {
+              std::stringstream ss; ss
+                << "error while recieving data: "
+                << ex.what()
+                ;
+
+              py::print(ss.str());
+            }
+          }
+        };
+
+        cl.reset();
         return retval;
       }
     , py::arg("contract")
@@ -577,4 +593,7 @@ PYBIND11_MODULE(_tws11, m) {
       , py::arg("timeout") = -1
     ) */
     ;
+
+  // init submodules
+  init_arrow_submodule(m);
 }

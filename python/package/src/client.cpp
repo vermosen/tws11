@@ -99,7 +99,7 @@ void client::securityDefinitionOptionalParameter(
 }
 
 void client::contractDetails(int id, const ContractDetails& c) {
-  m_details_hdl(c);
+  m_details_hdl(id, c);
 }
 
 void client::error(int id, int ec, const std::string& msg) {
