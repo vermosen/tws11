@@ -1,0 +1,21 @@
+Package: tws11
+Type: Package
+Title: R package for tws API.
+Version: ${PROJECT_VERSION}
+Date: ${CURRENT_DATE}
+Author: jean-mathieu vermosen <vermosen@yahoo.com>
+Maintainer: jean-mathieu vermosen <vermosen@yahoo.com>
+Description: R package for tws API.
+License: copyright 2020
+Encoding: UTF-8
+LazyData: true
+Depends: 
+  R          (>= 4.0.0),
+  methods    (>= 3.5.0),
+  rlang      (>= 0.4.9),
+  cpp11      (>= 0.2.5)
+RoxygenNote: 7.1.1
+Roxygen: list(markdown = TRUE)
+LinkingTo: cpp11
+SystemRequirements: C++11
+${TWS11_MODULE_STR}

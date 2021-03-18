@@ -5,7 +5,8 @@
       "-DCMAKE_VERBOSE:BOOL=ON",
       "-DBUILD_TESTS:BOOL=ON",
       "-DBUILD_DOC:BOOL=OFF",
-      "-DCMAKE_INSTALL_PREFIX:PATH=${workspaceFolder}"
+      "-DCMAKE_INSTALL_PREFIX:PATH=${workspaceFolder}",
+      "-DR_LOCATION_HINT:PATH=/opt/r40-gcc84-mkl"
   ],
   "cmake.buildDirectory": "${workspaceFolder}/${buildType}",
   "cmake.buildTask": false,

@@ -25,6 +25,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/module/utils.cmake")
 
 # set verbosity
 if(CMAKE_VERBOSE)
+	set(VERBOSE ON)
 	message(DEBUG "extra compiler logging...")
 	set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "flag to force make/ninja to display compiler commands")
 endif()
@@ -56,3 +57,6 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
 endif()
 
 find_package(Threads)
+
+# find R location
+find_r(HINTS ${R_LOCATION_HINT}/bin)
